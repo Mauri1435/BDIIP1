@@ -1,5 +1,5 @@
 #Proyecto 1 BDII I 2025
-![Diagrama Entidad-Relación](diagrama_er.jpg)
+![Diagrama Entidad-Relación](Diagrama_er.jpg)
 Descripción de la Empresa
 La propuesta se basa en una página en línea para mejorar el acceso y la gestión de recursos bibliográficos. Esta plataforma digital permite a los usuarios consultar la disponibilidad de los libros y reservarlos de forma remota.
 Proceso de Negocio
