@@ -1,4 +1,4 @@
-//package main.java.com.library.library.model;
+package com.library.library.model;
 
 import java.util.Scanner;
 import java.util.List;
@@ -11,8 +11,7 @@ import java.sql.SQLException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-
-public class users {
+public class administrator {
 
     @Value("${db.url}")
     private String url;
@@ -23,8 +22,7 @@ public class users {
     public String telefono;
     public String login;
 
-
-    public users(String login, String password) {
+    public administrator(String login, String password) {
         try {
             this.connection =  checkCredentials(login, password);
             setUserData();
@@ -47,11 +45,10 @@ public class users {
 
     public Boolean registerUser(String cedula, String nombre, String apellido, String telefono, String login, String password) {
         try {
-            CallableStatement statement = connection.prepareCall("CALL registerUser(?, ?, ?, ?, ?, ?)");
+            CallableStatement statement = connection.prepareCall("CALL registerAdmin(?, ?, ?, ?, ?, ?)");
             statement.setString(1, cedula);
             statement.setString(2, nombre);
             statement.setString(3, apellido);
-            statement.setString(4, telefono);
             statement.setString(1, login);
             statement.setString(2, password);
             statement.executeUpdate();
@@ -63,18 +60,14 @@ public class users {
 
     private void setUserData() {
         java.sql.Statement statement = connection.createStatement();
-        ResultSet resultSet = statement.executeQuery("SELECT * FROM usuario WHERE id_usuario = USER");
+        ResultSet resultSet = statement.executeQuery("SELECT * FROM administrador WHERE id_usuario = USER");
         while (resultSet.next()) {
             this.cedula = resultSet.getString("cedula");
             this.nombre = resultSet.getString("nombre");
             this.apellido = resultSet.getString("apellido");
-            this.telefono = resultSet.getString("telefono");
-            this.login = resultSet.getString("login");
         }
     }
 
 
-
-
-
+    
 }
