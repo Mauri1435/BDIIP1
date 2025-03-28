@@ -6,13 +6,6 @@ CREATE TABLE Usuario (
     Numero_Telefonico VARCHAR2(20)
 );
 
-CREATE TABLE Administrador (
-    ID_Admin NUMBER PRIMARY KEY,
-    Cedula VARCHAR2(20) UNIQUE NOT NULL,
-    Nombre VARCHAR2(50) NOT NULL,
-    Apellidos VARCHAR2(100) NOT NULL
-);
-
 CREATE TABLE Editorial (
     ID_Editorial NUMBER PRIMARY KEY,
     Nombre VARCHAR2(100) NOT NULL
@@ -50,6 +43,12 @@ CREATE TABLE Reservas (
     FOREIGN KEY (ID_Libro) REFERENCES Libros(ID_Libro)
 );
 
+-- Tabla Libro Reservas
+CREATE TABLE Libro_Reserva(
+    ID_Reserva REFERENCES Reservas(ID_Reserva),
+    ID_Libro REFERENCES Libros(ID_Libro),
+    PRIMARY KEY (ID_Reserva, ID_Libro)
+);
 
 /*
 --Trigger para manejar inventario al añadir o eliminar libros de a reserva
