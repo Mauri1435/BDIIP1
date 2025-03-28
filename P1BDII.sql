@@ -41,7 +41,7 @@ CREATE TABLE Reservas (
     FOREIGN KEY (ID_Usuario) REFERENCES Usuario(ID_Usuario)
 );
 
--- Tabla Libro Reservas
+-- Tablas intermedias 
 CREATE TABLE Libro_Reserva(
     ID_Reserva NUMBER NOT NULL,
     ID_Libro NUMBER NOT NULL,
@@ -50,12 +50,22 @@ CREATE TABLE Libro_Reserva(
     PRIMARY KEY (ID_Reserva, ID_Libro)
 );
 
-CREATE TABLE Autor_Libro
+CREATE TABLE Autor_Libro(
     ID_Autor NUMBER NOT NULL,
     ID_Libro NUMBER NOT NULL,
     FOREIGN KEY (ID_Autor) REFERENCES Autor(ID_Autor),
     FOREIGN KEY (ID_Libro) REFERENCES Libros(ID_Libro),
     PRIMARY KEY (ID_Autor, ID_Libro)
+);
+
+CREATE TABLE Genero_Libro(
+    ID_Genero NUMBER NOT NULL,
+    ID_Libro NUMBER NOT NULL,
+    FOREIGN KEY (ID_Genero) REFERENCES Genero(ID_Genero),
+    FOREIGN KEY (ID_Libro) REFERENCES Libros(ID_Libro),
+    PRIMARY KEY (ID_Genero, ID_Libro)
+);
+
 
 /*
 --Trigger para manejar inventario al añadir o eliminar libros de a reserva
