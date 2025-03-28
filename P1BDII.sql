@@ -52,7 +52,7 @@ CREATE TABLE Reservas (
 
 
 /*
---Trigger para manejar inventario al añadir o eliminar libros de la reserva
+--Trigger para manejar inventario al añadir o eliminar libros de a reserva
 CREATE OR REPLACE TRIGGER t_actualizar_invetario
     BEFORE INSERT OR DELETE
     ON Libro_Reserva
