@@ -27,7 +27,7 @@ CREATE TABLE Libros (
     ID_Libro NUMBER PRIMARY KEY,
     Titulo VARCHAR2(200) NOT NULL,
     ISBN VARCHAR2(20) UNIQUE NOT NULL,
-    Edad_Recomendada NUMBER,
+    Edad_Recomendada VARCHAR2, --Lo cambié a VARCHAR2 para poder poner 3-5, +18, etc 
     Inventario NUMBER NOT NULL,
     ID_Editorial NUMBER,
     FOREIGN KEY (ID_Editorial) REFERENCES Editorial(ID_Editorial)
@@ -39,7 +39,6 @@ CREATE TABLE Reservas (
     Fecha_Devolucion DATE NOT NULL,
     ID_Usuario NUMBER NOT NULL,
     ID_Libro NUMBER NOT NULL,
-    FOREIGN KEY (ID_Usuario) REFERENCES Usuario(ID_Usuario),
     FOREIGN KEY (ID_Libro) REFERENCES Libros(ID_Libro)
 );
 
