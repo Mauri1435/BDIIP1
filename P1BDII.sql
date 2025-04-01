@@ -155,7 +155,7 @@ DECLARE
             WHERE ID_Libro = :NEW.ID_Libro;
 
             IF v_inventario_actual <= 0 THEN
-                RAISE_APPLICATION_ERROR(-20001, 'Error 20001: No se cuenta con inventario del título' || v_titulo);
+                RAISE_APPLICATION_ERROR(-20101, 'Error 20101: No se cuenta con inventario del título' || v_titulo);
 
             ELSE
             UPDATE Libros
