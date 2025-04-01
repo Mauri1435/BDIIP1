@@ -86,7 +86,11 @@ CREATE OR REPLACE PACKAGE pkg_inserts AS
         p_nombre IN VARCHAR2,
         p_apellidos IN VARCHAR2
     );
-    
+    -- Genero
+    PROCEDURE insert_genero(
+        p_nombre IN VARCHAR2,
+        p_descripcion IN VARCHAR2 DEFAULT NULL
+    );
 END pkg_inserts;
 /
 
@@ -161,6 +165,29 @@ CREATE OR REPLACE PACKAGE BODY pkg_inserts AS
             ROLLBACK;
             RAISE;
     END insert_autor;
+
+    
+    -- GENERO
+    PROCEDURE insert_genero(
+        p_nombre IN VARCHAR2,
+        p_descripcion IN VARCHAR2 DEFAULT NULL
+    ) IS
+    BEGIN
+        INSERT INTO Genero (Nombre, Descripcion)
+        VALUES (p_nombre, p_descripcion);
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Género insertado correctamente');
+    EXCEPTION
+        WHEN DUP_VAL_ON_INDEX THEN
+            DBMS_OUTPUT.PUT_LINE('Error al insertar Género');
+            ROLLBACK;
+            RAISE_APPLICATION_ERROR(-20004, 'El genero ' || p_nombre || ' ya existe');
+        WHEN OTHERS THEN
+            DBMS_OUTPUT.PUT_LINE('Error al insertar Género');
+            ROLLBACK;
+            RAISE;
+    END insert_genero;
+    
     
 END pkg_inserts;
 /
