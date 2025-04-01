@@ -66,6 +66,77 @@ CREATE TABLE Genero_Libro(
     PRIMARY KEY (ID_Genero, ID_Libro)
 );
 
+-- Package de inserts, podría combinarse en uno de modificaciones o mantenerse separado por comodidad
+
+CREATE OR REPLACE PACKAGE pkg_inserts AS
+    --Usuario
+    PROCEDURE insert_usuario(
+        p_cedula IN VARCHAR2,
+        p_nombre IN VARCHAR2,
+        p_apellidos IN VARCHAR2,
+        p_numero_telefonico IN VARCHAR2 DEFAULT NULL
+    );
+    --Editorial
+    PROCEDURE insert_editorial(
+        p_nombre IN VARCHAR2
+    );
+    
+END pkg_inserts;
+/
+
+
+CREATE OR REPLACE PACKAGE BODY pkg_inserts AS
+    -- USUARIO
+    PROCEDURE insert_usuario(
+        p_cedula IN VARCHAR2,
+        p_nombre IN VARCHAR2,
+        p_apellidos IN VARCHAR2,
+        p_numero_telefonico IN VARCHAR2 DEFAULT NULL
+    ) IS
+
+    BEGIN
+        INSERT INTO Usuario (Cedula, Nombre, Apellidos, Numero_Telefonico)
+        VALUES (p_cedula, p_nombre, p_apellidos, p_numero_telefonico);
+        COMMIT;
+
+    EXCEPTION
+        WHEN DUP_VAL_ON_INDEX THEN
+            ROLLBACK;
+            DBMS_OUTPUT.PUT_LINE('Error al insertar Usuario');
+            RAISE_APPLICATION_ERROR(-20001, 'Ya existe un usario con la cédula ' || p_cedula);
+        WHEN OTHERS THEN
+            DBMS_OUTPUT.PUT_LINE('Error al insertar Usuario');
+            ROLLBACK;
+            RAISE;
+
+    END insert_usuario;
+
+    -- EDITORIAL
+    PROCEDURE insert_editorial(
+        p_nombre IN VARCHAR2
+    ) IS
+
+    BEGIN
+        INSERT INTO Editorial (Nombre)
+        VALUES (p_nombre);
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Editorial insertada correctamente');
+
+    EXCEPTION
+        WHEN DUP_VAL_ON_INDEX THEN
+            ROLLBACK;
+            DBMS_OUTPUT.PUT_LINE('Error al insertar Editorial');
+            RAISE_APPLICATION_ERROR(-20002, 'La editorial ' || p_nombre || ' ya existe');
+        WHEN OTHERS THEN
+            DBMS_OUTPUT.PUT_LINE('Error al insertar Editorial');
+            ROLLBACK;
+            RAISE;
+            
+    END insert_editorial;
+    
+END pkg_inserts;
+/
+
 
 /*
 --Trigger para manejar inventario al añadir o eliminar libros de a reserva
