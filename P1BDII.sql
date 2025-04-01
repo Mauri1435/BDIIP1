@@ -81,6 +81,11 @@ CREATE OR REPLACE PACKAGE pkg_inserts AS
     PROCEDURE insert_editorial(
         p_nombre IN VARCHAR2
     );
+    -- Autor
+    PROCEDURE insert_autor(
+        p_nombre IN VARCHAR2,
+        p_apellidos IN VARCHAR2
+    );
     
 END pkg_inserts;
 /
@@ -134,6 +139,28 @@ CREATE OR REPLACE PACKAGE BODY pkg_inserts AS
             RAISE;
             
     END insert_editorial;
+
+    --AUTOR
+    PROCEDURE insert_autor(
+        p_nombre IN VARCHAR2,
+        p_apellidos IN VARCHAR2
+    ) IS
+    BEGIN
+        INSERT INTO Autor (Nombre, Apellidos)
+        VALUES (p_nombre, p_apellidos);
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Autor insertado correctamente');
+    EXCEPTION
+        WHEN DUP_VAL_ON_INDEX THEN
+            ROLLBACK;
+            DBMS_OUTPUT.PUT_LINE('Error al insertar Autor');
+            RAISE_APPLICATION_ERROR(-20003, 
+                'Ya existe un autor con nombre "' || p_nombre || 
+                '" y apellidos "' || p_apellidos || '"');
+        WHEN OTHERS THEN
+            ROLLBACK;
+            RAISE;
+    END insert_autor;
     
 END pkg_inserts;
 /
