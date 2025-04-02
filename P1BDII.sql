@@ -225,7 +225,7 @@ PROCEDURE insert_libro(
     PRAGMA EXCEPTION_INIT(e_genero_no_existe, -20012);
     
 BEGIN
-    -- Validar editorial existe
+    -- Validar EDITORIAL existe
     SELECT COUNT(*) INTO v_editorial_existe
     FROM Editorial
     WHERE ID_Editorial = p_id_editorial;
