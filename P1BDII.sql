@@ -30,7 +30,7 @@ CREATE TABLE Libros (
     ISBN VARCHAR2(20) UNIQUE NOT NULL,
     Edad_Recomendada VARCHAR2(10), --Lo cambié a VARCHAR2 para poder poner 3-5, +18, etc 
     Inventario NUMBER NOT NULL,
-    ID_Editorial NUMBER,
+    ID_Editorial NUMBER NOT NULL,
     FOREIGN KEY (ID_Editorial) REFERENCES Editorial(ID_Editorial)
 );
 
