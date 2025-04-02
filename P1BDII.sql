@@ -91,6 +91,17 @@ CREATE OR REPLACE PACKAGE pkg_inserts AS
         p_nombre IN VARCHAR2,
         p_descripcion IN VARCHAR2 DEFAULT NULL
     );
+    --Libro
+    PROCEDURE insert_libro(
+        p_titulo IN VARCHAR2,
+        p_isbn IN VARCHAR2,
+        p_edad_recomendada IN VARCHAR2,
+        p_inventario IN NUMBER,
+        p_id_editorial IN NUMBER,
+        p_autores IN VARCHAR2 DEFAULT NULL,  -- IDs de autores relacionados (ej: '1,2,3')
+        p_generos IN VARCHAR2 DEFAULT NULL  -- IDs de generos relacionados (ej: '1,,2,3')
+    );
+    
 END pkg_inserts;
 /
 
@@ -188,6 +199,127 @@ CREATE OR REPLACE PACKAGE BODY pkg_inserts AS
             RAISE;
     END insert_genero;
     
+        
+PROCEDURE insert_libro(
+    p_titulo IN VARCHAR2,
+    p_isbn IN VARCHAR2,
+    p_edad_recomendada IN VARCHAR2,
+    p_inventario IN NUMBER,
+    p_id_editorial IN NUMBER,
+    p_autores IN VARCHAR2 DEFAULT NULL, -- IDs de autores relacionados (ej: '1,2,3')
+    p_generos IN VARCHAR2 DEFAULT NULL -- IDs de generos relacionados (ej: '1,2,3')
+) IS
+
+    v_id_libro NUMBER;
+    v_editorial_existe NUMBER;
+    v_autor_existe NUMBER;
+    v_genero_existe NUMBER;
+    
+    e_editorial_no_existe EXCEPTION;
+    PRAGMA EXCEPTION_INIT(e_editorial_no_existe, -20010);
+
+    e_autor_no_existe EXCEPTION;
+    PRAGMA EXCEPTION_INIT(e_autor_no_existe, -20011);
+
+    e_genero_no_existe EXCEPTION;
+    PRAGMA EXCEPTION_INIT(e_genero_no_existe, -20012);
+    
+BEGIN
+    -- Validar editorial existe
+    SELECT COUNT(*) INTO v_editorial_existe
+    FROM Editorial
+    WHERE ID_Editorial = p_id_editorial;
+    
+    IF v_editorial_existe = 0 THEN
+        RAISE e_editorial_no_existe;
+    END IF;
+    
+    -- Validar AUTORES existen 
+    IF p_autores IS NOT NULL THEN
+        FOR r IN (
+            SELECT regexp_substr(p_autores, '[^,]+', 1, LEVEL) AS id_autor
+            FROM dual
+            CONNECT BY regexp_substr(p_autores, '[^,]+', 1, LEVEL) IS NOT NULL
+        ) LOOP
+            SELECT COUNT(*) INTO v_autor_existe
+            FROM Autor
+            WHERE ID_Autor = TO_NUMBER(r.id_autor);
+            
+            IF v_autor_existe = 0 THEN
+                RAISE_APPLICATION_ERROR(-20011, 'Error: No existe el autor con ID ' || r.id_autor);
+            END IF;
+        END LOOP;
+    END IF;
+    
+    -- Validar GÉNEROS existen 
+    IF p_generos IS NOT NULL THEN
+        FOR r IN (
+            SELECT regexp_substr(p_generos, '[^,]+', 1, LEVEL) AS id_genero
+            FROM dual
+            CONNECT BY regexp_substr(p_generos, '[^,]+', 1, LEVEL) IS NOT NULL
+        ) LOOP
+            SELECT COUNT(*) INTO v_genero_existe
+            FROM Genero
+            WHERE ID_Genero = TO_NUMBER(r.id_genero);
+            
+            IF v_genero_existe = 0 THEN
+                RAISE_APPLICATION_ERROR(-20012, 'Error: No existe el género con ID ' || r.id_genero);
+            END IF;
+        END LOOP;
+    END IF;
+    
+    -- Insertar el libro 
+    INSERT INTO Libros (Titulo, ISBN, Edad_Recomendada, Inventario, ID_Editorial)
+    VALUES (p_titulo, p_isbn, p_edad_recomendada, p_inventario, p_id_editorial)
+    RETURNING ID_Libro INTO v_id_libro;
+    
+    -- Insertar relaciones con autores
+    IF p_autores IS NOT NULL THEN
+        FOR r IN (
+            SELECT regexp_substr(p_autores, '[^,]+', 1, LEVEL) AS id_autor
+            FROM dual
+            CONNECT BY regexp_substr(p_autores, '[^,]+', 1, LEVEL) IS NOT NULL
+        ) LOOP
+            INSERT INTO Autor_Libro (ID_Autor, ID_Libro)
+            VALUES (TO_NUMBER(r.id_autor), v_id_libro);
+        END LOOP;
+    END IF;
+    
+    -- Insertar relaciones con géneros
+    IF p_generos IS NOT NULL THEN
+        FOR r IN (
+            SELECT regexp_substr(p_generos, '[^,]+', 1, LEVEL) AS id_genero
+            FROM dual
+            CONNECT BY regexp_substr(p_generos, '[^,]+', 1, LEVEL) IS NOT NULL
+        ) LOOP
+            INSERT INTO Genero_Libro (ID_Genero, ID_Libro)
+            VALUES (TO_NUMBER(r.id_genero), v_id_libro);
+        END LOOP;
+    END IF;
+    
+    COMMIT;
+    DBMS_OUTPUT.PUT_LINE('Libro insertado correctamente con ID: ' || v_id_libro);
+    
+    EXCEPTION
+        WHEN DUP_VAL_ON_INDEX THEN
+            ROLLBACK;
+            IF SQLERRM LIKE '%TITULO%' THEN
+                RAISE_APPLICATION_ERROR(-20005, 'Error: Ya existe un libro con el título "' || p_titulo || '"');
+            ELSIF SQLERRM LIKE '%ISBN%' THEN
+                RAISE_APPLICATION_ERROR(-20006, 'Error: Ya existe un libro con el ISBN "' || p_isbn || '"');
+            ELSE
+                RAISE_APPLICATION_ERROR(-20007, 'Error de duplicado: ' || SQLERRM);
+            END IF;
+            
+        WHEN e_editorial_no_existe THEN
+            ROLLBACK;
+            RAISE_APPLICATION_ERROR(-20010, 'Error: No existe la editorial con ID ' || p_id_editorial);
+            
+        WHEN OTHERS THEN
+            ROLLBACK;
+            RAISE;
+END insert_libro;
+
     
 END pkg_inserts;
 /
