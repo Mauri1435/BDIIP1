@@ -554,8 +554,6 @@ CREATE OR REPLACE PACKAGE BODY pkg_inserts AS
 END pkg_inserts;
 /
 
-
-
 --Trigger para manejar inventario al añadir o eliminar libros de a reserva
 CREATE OR REPLACE TRIGGER t_actualizar_invetario
     BEFORE INSERT OR DELETE
