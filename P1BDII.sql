@@ -91,7 +91,7 @@ CREATE OR REPLACE PACKAGE pkg_inserts AS
         p_nombre IN VARCHAR2,
         p_descripcion IN VARCHAR2 DEFAULT NULL
     );
-    --Libro
+    -- Libro
     PROCEDURE insert_libro(
         p_titulo IN VARCHAR2,
         p_isbn IN VARCHAR2,
@@ -101,13 +101,27 @@ CREATE OR REPLACE PACKAGE pkg_inserts AS
         p_autores IN VARCHAR2 DEFAULT NULL,  -- IDs de autores relacionados (ej: '1,2,3')
         p_generos IN VARCHAR2 DEFAULT NULL  -- IDs de generos relacionados (ej: '1,,2,3')
     );
-
     --Reserva
     PROCEDURE insert_reserva(
         p_fecha_reserva IN DATE,
         p_fecha_devolucion IN DATE,
         p_id_usuario IN NUMBER,
         p_libros IN VARCHAR2 DEFAULT NULL -- IDs de libros relacionados (ej: '1,2,3')
+    );
+    -- Autor_Libro
+    PROCEDURE insert_autor_libro(
+        p_id_autor IN NUMBER,
+        p_id_libro IN NUMBER
+    );
+    -- Genero_Libro
+    PROCEDURE insert_genero_libro(
+        p_id_genero IN NUMBER,
+        p_id_libro IN NUMBER
+    );
+    -- Libro_Reserva
+    PROCEDURE insert_libro_reserva(
+        p_id_reserva IN NUMBER,
+        p_id_libro IN NUMBER
     );
 END pkg_inserts;
 /
@@ -408,6 +422,134 @@ CREATE OR REPLACE PACKAGE BODY pkg_inserts AS
                 RAISE_APPLICATION_ERROR(-20000, 'Error inesperado: ' || SQLERRM);
             END IF;
     END insert_reserva;
+
+
+-- AUTOR_LIBRO
+    PROCEDURE insert_autor_libro(
+        p_id_autor IN NUMBER,
+        p_id_libro IN NUMBER
+    ) IS
+        v_autor_existe NUMBER;
+        v_libro_existe NUMBER;
+    BEGIN
+        -- Validar AUTOR existe
+        SELECT COUNT(*) INTO v_autor_existe
+        FROM Autor
+        WHERE ID_Autor = p_id_autor;
+        
+        IF v_autor_existe = 0 THEN
+            RAISE_APPLICATION_ERROR(-20030, 'Error: No existe el autor con ID ' || p_id_autor);
+        END IF;
+        
+        -- Validar LIBRO existe
+        SELECT COUNT(*) INTO v_libro_existe
+        FROM Libros
+        WHERE ID_Libro = p_id_libro;
+        
+        IF v_libro_existe = 0 THEN
+            RAISE_APPLICATION_ERROR(-20031, 'Error: No existe el libro con ID ' || p_id_libro);
+        END IF;
+        
+        -- Insertar relación
+        INSERT INTO Autor_Libro (ID_Autor, ID_Libro)
+        VALUES (p_id_autor, p_id_libro);
+        
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Relación autor-libro insertada correctamente');
+        
+    EXCEPTION
+        WHEN DUP_VAL_ON_INDEX THEN
+            ROLLBACK;
+            RAISE_APPLICATION_ERROR(-20032, 'Error: Relación autor-libro ya existe');
+        WHEN OTHERS THEN
+            ROLLBACK;
+            RAISE;
+    END insert_autor_libro;
+    
+-- GENERO_LIBRO
+    PROCEDURE insert_genero_libro(
+        p_id_genero IN NUMBER,
+        p_id_libro IN NUMBER
+    ) IS
+        v_genero_existe NUMBER;
+        v_libro_existe NUMBER;
+    BEGIN
+        -- Validar GENERO existe
+        SELECT COUNT(*) INTO v_genero_existe
+        FROM Genero
+        WHERE ID_Genero = p_id_genero;
+        
+        IF v_genero_existe = 0 THEN
+            RAISE_APPLICATION_ERROR(-20033, 'Error: No existe el género con ID ' || p_id_genero);
+        END IF;
+        
+        -- Validar LIBRO existe
+        SELECT COUNT(*) INTO v_libro_existe
+        FROM Libros
+        WHERE ID_Libro = p_id_libro;
+        
+        IF v_libro_existe = 0 THEN
+            RAISE_APPLICATION_ERROR(-20034, 'Error: No existe el libro con ID ' || p_id_libro);
+        END IF;
+        
+        -- Insertar relación
+        INSERT INTO Genero_Libro (ID_Genero, ID_Libro)
+        VALUES (p_id_genero, p_id_libro);
+        
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Relación género-libro insertada correctamente');
+        
+    EXCEPTION
+        WHEN DUP_VAL_ON_INDEX THEN
+            ROLLBACK;
+            RAISE_APPLICATION_ERROR(-20035, 'Error: Relación género-libro ya existe');
+        WHEN OTHERS THEN
+            ROLLBACK;
+            RAISE;
+    END insert_genero_libro;
+    
+-- LIBRO_RESERVA
+    PROCEDURE insert_libro_reserva(
+        p_id_reserva IN NUMBER,
+        p_id_libro IN NUMBER
+    ) IS
+        v_reserva_existe NUMBER;
+        v_libro_existe NUMBER;
+        v_inventario_actual NUMBER;
+        v_titulo VARCHAR2(200);
+    BEGIN
+        -- Validar RESERVA existe
+        SELECT COUNT(*) INTO v_reserva_existe
+        FROM Reservas
+        WHERE ID_Reserva = p_id_reserva;
+        
+        IF v_reserva_existe = 0 THEN
+            RAISE_APPLICATION_ERROR(-20036, 'Error: No existe la reserva con ID ' || p_id_reserva);
+        END IF;
+        
+        -- Validar LIBRO existe
+        SELECT Inventario, Titulo INTO v_inventario_actual, v_titulo
+        FROM Libros
+        WHERE ID_Libro = p_id_libro;
+        
+        -- Insertar relación 
+        INSERT INTO Libro_Reserva (ID_Reserva, ID_Libro)
+        VALUES (p_id_reserva, p_id_libro);
+        
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Libro añadido a la reserva correctamente');
+        
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            ROLLBACK;
+            RAISE_APPLICATION_ERROR(-20037, 'Error: No existe el libro con ID ' || p_id_libro);
+        WHEN DUP_VAL_ON_INDEX THEN
+            ROLLBACK;
+            RAISE_APPLICATION_ERROR(-20038, 'Error: El libro indicado ya está en la reserva');
+        WHEN OTHERS THEN
+            ROLLBACK;
+            RAISE;
+    END insert_libro_reserva;
     
 END pkg_inserts;
 /
