@@ -1,15 +1,14 @@
 package com.library.library.model;
 
-import java.util.Scanner;
-import java.util.List;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 public class administrator {
 
@@ -59,7 +58,7 @@ public class administrator {
     }
 
     private void setUserData() {
-        java.sql.Statement statement = connection.createStatement();
+        Statement statement = connection.createStatement();
         ResultSet resultSet = statement.executeQuery("SELECT * FROM administrador WHERE id_usuario = USER");
         while (resultSet.next()) {
             this.cedula = resultSet.getString("cedula");

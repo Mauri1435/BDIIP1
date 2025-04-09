@@ -8,15 +8,20 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
+import org.hibernate.annotations.processing.SQL;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import javax.sql.DataSource;
 
 
 public class users {
 
     @Value("${db.url}")
     private String url;
+    private final DataSource Datasource;
     private Connection connection;
+    private String id;
     public String cedula;
     public String nombre;
     public String apellido;
@@ -24,7 +29,7 @@ public class users {
     public String login;
 
 
-    public users(String login, String password) {
+    public users(String login, String password) throws SQLException {
         try {
             this.connection =  checkCredentials(login, password);
             setUserData();
@@ -71,6 +76,14 @@ public class users {
             this.telefono = resultSet.getString("telefono");
             this.login = resultSet.getString("login");
         }
+    }
+
+    public String getID(){
+        return this.id;
+    }
+
+    public Connection getConnection() {
+        return this.connection;
     }
 
 

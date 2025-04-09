@@ -3,14 +3,14 @@ package com.library.library.model;
 public class book {
     private Integer id;
     private String title;
-    private author author;
+    private String author;
     private String type;
     private Integer age_restriction;
     private Integer isbn;
     private Integer quantity;
-    private editorial editorial;
+    private String editorial;
 
-    public book(Integer id, String title, author author, String type, Integer age_restriction, Integer isbn, Integer quantity, editorial editorial) {
+    public book(Integer id, String title, String author, String type, Integer age_restriction, Integer isbn, Integer quantity, String editorial) {
         this.id = id;
         this.title = title;
         this.author = author;
@@ -26,7 +26,7 @@ public class book {
     public String getTitle() {
         return title;
     }
-    public author getAuthor() {
+    public String getAuthor() {
         return author;
     }
     public String getType() {
@@ -41,7 +41,7 @@ public class book {
     public Integer getQuantity() {
         return quantity;
     }
-    public editorial getEditorial() {
+    public String getEditorial() {
         return editorial;
     }
 

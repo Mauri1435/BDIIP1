@@ -1,43 +1,77 @@
 package com.library.library.controller;
 
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import java.util.ArrayList;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.RequestEntity;
+import org.springframework.http.HttpStatus;
+import jakarta.servlet.http.*;
+import javax.servlet.ServletRequest;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+
 
 import com.library.library.model.users;
-import com.library.library.model.type;
-import com.library.library.model.book;
-import com.library.library.model.author;
-import com.library.library.model.editorial;
-import com.library.library.model.reservation;
 
-@Controller
-@RequestMapping("/login")
+@RestController
+@RequestMapping("/api/auth")
 public class login {
 
-    public users user;
-    public ArrayList<type> types;
-    public ArrayList<book> books;
-    public ArrayList<author> authors;
-    public ArrayList<editorial> editorials;
-    public ArrayList<reservation> reservations;
+    public static login instance;
+    private Map<String,users> sessionConns = new HashMap<String,users>();
+
+    private login(users sessionConn) {
+        if (sessionConn != null) {
+            this.sessionConns.put(sessionConn.getID(), sessionConn);
+        }
+    }
     
-    @GetMapping("/login")
-    public String showLogin(Model model) {
-        model.addAttribute("login", new login());
-        return "login";
+    @PostMapping("/login")
+    public ResponseEntity<String> authLogin(@RequestBody LoginRequest request, HttpSession session) {
+        try {
+            users sessionConn = new users(request.getUsername(), request.getPassword());
+            String jwtToken = jwtService.generateToken(request.getUsername());
+            Cookie cookie = new Cookie("jwt_token", jwtToken);
+            cookie.setHttpOnly(true);
+            cookie.setPath("/");
+            cookie.setMaxAge(60 * 60);
+            getInstance().addLogin(jwtToken,sessionConn);
+
+            session.setAttribute("dbUsername", request.getUsername());
+            return ResponseEntity.ok("Login exitoso");
+        } catch (SQLException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Login fallido: " + e.getMessage());
+        }
     }
 
-    @PostMapping("/login")
-    public String checkLogin(@ModelAttribute("login") login login, Model model) {
-        try{
-            users user = new users(login.getLogin(), login.getPassword());
-        }catch(Exception e){
-            model.addAttribute("error", "Usuario o contraseña incorrectos");
-            return "login";
+    public static login getInstance() {
+        if (instance == null) {
+            instance = new login(null);
         }
-        
+        return instance;
     }
-    
+
+    public void addLogin(String token,users sessionConn) {
+        this.sessionConns.put(token, sessionConn);
+    }
+
+    public Connection getConnection(String id){
+        return this.sessionConns.get(id).getConnection();
+    }
+
+    public String getToken(){    
+        String token = null;
+        Cookie[] cookies = httpRequest.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("jwt_token".equals(cookie.getName())) {
+                    token = cookie.getValue();
+                }
+            }
+        }
+        return token;
+    }
 }
