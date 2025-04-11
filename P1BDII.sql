@@ -33,6 +33,7 @@ CREATE TABLE Libros (
     Edad_Recomendada VARCHAR2(10), --Lo cambié a VARCHAR2 para poder poner 3-5, +18, etc 
     Inventario NUMBER NOT NULL,
     ID_Editorial NUMBER NOT NULL,
+    Activo NUMBER(1) DEFAULT 1 CHECK (Activo IN (0, 1)), --Para no tener que eliminar libros que ya tengan reservas
     FOREIGN KEY (ID_Editorial) REFERENCES Editorial(ID_Editorial)
 );
 
