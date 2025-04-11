@@ -4,8 +4,7 @@ CREATE TABLE Usuario (
     Nombre VARCHAR2(50) NOT NULL,
     Apellidos VARCHAR2(100) NOT NULL,
     Numero_Telefonico VARCHAR2(20),
-    Multa NUMBER DEFAULT NULL,
-    Cantidad_Libros NUMBER DEFAULT NULL
+    Multa NUMBER DEFAULT NULL
 );
 
 CREATE TABLE Editorial (
