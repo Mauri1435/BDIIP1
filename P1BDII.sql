@@ -42,6 +42,7 @@ CREATE TABLE Reservas (
     Fecha_Devolucion DATE NOT NULL,
     ID_Usuario NUMBER NOT NULL,
     Activo NUMBER(1) DEFAULT 1 CHECK (Activo IN (0, 1)), -- Para guardar y poder manejar reservas concluidas
+    Cantidad_Libros NUMBER DEFAULT 0,
     FOREIGN KEY (ID_Usuario) REFERENCES Usuario(ID_Usuario)
 );
 
