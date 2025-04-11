@@ -559,7 +559,7 @@ END pkg_inserts;
 /
 
 --Trigger para manejar inventario al añadir o eliminar libros de a reserva
-CREATE OR REPLACE TRIGGER t_actualizar_invetario
+CREATE OR REPLACE TRIGGER t_actualizar_inventario
     BEFORE INSERT OR DELETE
     ON Libro_Reserva
     FOR EACH ROW
