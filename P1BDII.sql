@@ -723,6 +723,356 @@ END pkg_operations;
 /
 
 
+CREATE OR REPLACE PACKAGE pkg_deletes AS
+    -- Usuario
+    PROCEDURE delete_usuario(
+        p_id_usuario IN NUMBER
+    );
+    -- Editorial
+    PROCEDURE delete_editorial(
+        p_id_editorial IN NUMBER
+    );
+    -- Autor
+    PROCEDURE delete_autor(
+        p_id_autor IN NUMBER
+    );
+    -- Género
+    PROCEDURE delete_genero(
+        p_id_genero IN NUMBER
+    );
+    -- Libro
+    PROCEDURE delete_libro(
+        p_id_libro IN NUMBER
+    );
+    -- Reserva
+    PROCEDURE delete_reserva(
+        p_id_reserva IN NUMBER
+    );
+    -- Autor_Libro
+    PROCEDURE delete_autor_libro(
+        p_id_autor IN NUMBER,
+        p_id_libro IN NUMBER
+    );
+    -- Genero_Libro
+    PROCEDURE delete_genero_libro(
+        p_id_genero IN NUMBER,
+        p_id_libro IN NUMBER
+    );
+    -- Libro_Reserva
+    PROCEDURE delete_libro_reserva(
+        p_id_reserva IN NUMBER,
+        p_id_libro IN NUMBER
+    );
+END pkg_deletes;
+/
+
+CREATE OR REPLACE PACKAGE BODY pkg_deletes AS
+-- USUARIO 
+    PROCEDURE delete_usuario(
+        p_id_usuario IN NUMBER
+    ) IS
+        v_tiene_reservas NUMBER;
+    BEGIN
+        -- Verificar si el usuario tiene reservas activas
+        SELECT COUNT(*) INTO v_tiene_reservas
+        FROM Reservas
+        WHERE ID_Usuario = p_id_usuario;
+        
+        IF v_tiene_reservas > 0 THEN
+            RAISE_APPLICATION_ERROR(-20050, 'No se puede eliminar el usuario porque tiene reservas activas');
+        END IF;
+        
+        -- Eliminar usuario
+        DELETE FROM Usuario
+        WHERE ID_Usuario = p_id_usuario;
+        
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Usuario eliminado correctamente');
+        
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            RAISE_APPLICATION_ERROR(-20051, 'No existe el usuario con ID ' || p_id_usuario);
+        WHEN OTHERS THEN
+            ROLLBACK;
+            RAISE;
+    END delete_usuario;
+    
+-- EDITORIAL 
+    PROCEDURE delete_editorial(
+        p_id_editorial IN NUMBER
+    ) IS
+        v_tiene_libros NUMBER;
+        v_editorial_existe NUMBER;
+    BEGIN
+        --Verificar editorial existe
+        SELECT COUNT(*) INTO v_editorial_existe
+        FROM Editorial
+        WHERE ID_Editorial = p_id_editorial;
+        
+        IF v_editorial_existe = 0 THEN
+            RAISE_APPLICATION_ERROR(-20053, 'No existe la editorial con ID ' || p_id_editorial);
+        END IF;
+
+        --Verificar si tiene libros
+        SELECT COUNT(*) INTO v_tiene_libros
+        FROM Libros
+        WHERE ID_Editorial = p_id_editorial;
+        
+        IF v_tiene_libros > 0 THEN
+            -- Marcar editorial como inactiva
+            UPDATE Editorial
+                SET Activo = 0
+                WHERE ID_Editorial = p_id_editorial;
+
+            -- Marcar libros relacionados como inactivos
+            FOR r IN (SELECT ID_Libro FROM Libros WHERE ID_Editorial = p_id_editorial) 
+            LOOP
+                UPDATE Libros
+                SET Activo = 0
+                WHERE ID_Libro = r.ID_Libro;
+            END LOOP;
+ 
+            DBMS_OUTPUT.PUT_LINE('Editorial cuenta con libros asociados, marcada como inactiva junto con sus libros asociados.');
+
+        ELSE
+            -- Eliminar Editorial
+            DELETE FROM Editorial
+            WHERE ID_Editorial = p_id_editorial;
+            DBMS_OUTPUT.PUT_LINE('Editorial y eliminada correctamente');
+        END IF;
+        COMMIT;
+
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK;
+            RAISE;
+    END delete_editorial;
+    
+-- AUTOR 
+    PROCEDURE delete_autor(
+        p_id_autor IN NUMBER
+    ) IS
+    BEGIN
+        -- Eliminar relaciones con libros
+        DELETE FROM Autor_Libro
+        WHERE ID_Autor = p_id_autor;
+        
+        -- Eliminar el autor
+        DELETE FROM Autor
+        WHERE ID_Autor = p_id_autor;
+        
+        IF SQL%ROWCOUNT = 0 THEN
+            RAISE_APPLICATION_ERROR(-20055, 'No existe el autor con ID ' || p_id_autor);
+        END IF;
+        
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Autor eliminado correctamente');
+        
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK;
+            RAISE;
+    END delete_autor;
+    
+-- GENERO
+    PROCEDURE delete_genero(
+        p_id_genero IN NUMBER
+    ) IS
+    BEGIN
+        -- Eliminar relaciones con libros
+        DELETE FROM Genero_Libro
+        WHERE ID_Genero = p_id_genero;
+        
+        -- Eliminar género
+        DELETE FROM Genero
+        WHERE ID_Genero = p_id_genero;
+        
+        IF SQL%ROWCOUNT = 0 THEN
+            RAISE_APPLICATION_ERROR(-20057, 'No existe el género con ID ' || p_id_genero);
+        END IF;
+        
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Género eliminados correctamente');
+        
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK;
+            RAISE;
+    END delete_genero;
+    
+-- LIBRO 
+    PROCEDURE delete_libro(
+        p_id_libro IN NUMBER
+    ) IS
+        v_libro_existe NUMBER;
+        v_en_reservas_activas NUMBER;
+    BEGIN
+        -- Verificar libro existe
+        SELECT COUNT(*) INTO v_libro_existe
+        FROM Libros
+        WHERE ID_Libro = p_id_libro;
+        
+        IF v_libro_existe = 0 THEN
+            RAISE_APPLICATION_ERROR(-20053, 'No existe el libro con ID ' || p_id_libro);
+        END IF;
+
+        -- Verificar si el libro está en reservas activas
+        SELECT COUNT(*) INTO v_en_reservas_activas
+        FROM Libro_Reserva lr
+        JOIN Reservas r ON lr.ID_Reserva = r.ID_Reserva
+        WHERE lr.ID_Libro = p_id_libro
+        AND r.Activo = 1; 
+        
+        IF v_en_reservas_activas > 0 THEN
+            UPDATE Libros
+            SET Activo = 0
+            WHERE ID_Libro = p_id_libro;
+
+            DBMS_OUTPUT.PUT_LINE('Libro es parte de reservas activas, marcado como inactivo.');
+
+        ELSE
+            -- Eliminar relaciones del libro 
+            DELETE FROM Genero_Libro WHERE ID_Libro = p_id_libro;
+            DELETE FROM Autor_Libro WHERE ID_Libro = p_id_libro;
+            DELETE FROM Libro_Reserva WHERE ID_Libro = p_id_libro;
+
+            -- Eliminar libro
+            DELETE FROM Libros WHERE ID_Libro = p_id_libro;
+
+            DBMS_OUTPUT.PUT_LINE('Libro y todas sus relaciones eliminados correctamente');
+        
+        END IF;
+        COMMIT;
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK;
+            RAISE;
+    END delete_libro;
+    
+-- RESERVA
+    PROCEDURE delete_reserva(
+        p_id_reserva IN NUMBER
+    ) IS
+        v_reserva_existe NUMBER;
+    BEGIN
+        -- Verificar si la reserva existe
+        SELECT COUNT(*) INTO v_reserva_existe
+        FROM Reservas
+        WHERE ID_Reserva = p_id_reserva;
+        
+        IF v_reserva_existe = 0 THEN
+            RAISE_APPLICATION_ERROR(-20066, 'No existe la reserva con ID ' || p_id_reserva);
+        END IF;
+
+        -- Eliminar relaciones con libros
+        DELETE FROM Libro_Reserva WHERE ID_Reserva = p_id_reserva;
+        
+        -- Eliminar reserva
+        DELETE FROM Reservas WHERE ID_Reserva = p_id_reserva;
+        
+        IF SQL%ROWCOUNT = 0 THEN
+            RAISE_APPLICATION_ERROR(-20060, 'No existe la reserva con ID ' || p_id_reserva);
+        END IF;
+        
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Reserva y sus libros asociados eliminados correctamente');
+        
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK;
+            RAISE;
+    END delete_reserva;
+    
+-- AUTOR_LIBRO
+    PROCEDURE delete_autor_libro(
+        p_id_autor IN NUMBER,
+        p_id_libro IN NUMBER
+    ) IS
+    BEGIN
+        DELETE FROM Autor_Libro
+        WHERE ID_Autor = p_id_autor
+        AND ID_Libro = p_id_libro;
+        
+        IF SQL%ROWCOUNT = 0 THEN
+            RAISE_APPLICATION_ERROR(-20061, 'No existe la relación autor-libro indicada');
+        END IF;
+        
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Relación autor-libro eliminada correctamente');
+        
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK;
+            RAISE;
+    END delete_autor_libro;
+    
+-- GENERO_LIBRO
+    PROCEDURE delete_genero_libro(
+        p_id_genero IN NUMBER,
+        p_id_libro IN NUMBER
+    ) IS
+    BEGIN
+        DELETE FROM Genero_Libro
+        WHERE ID_Genero = p_id_genero
+        AND ID_Libro = p_id_libro;
+        
+        IF SQL%ROWCOUNT = 0 THEN
+            RAISE_APPLICATION_ERROR(-20062, 'No existe la relación género-libro indicada');
+        END IF;
+        
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Relación género-libro eliminada correctamente');
+        
+    EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK;
+            RAISE;
+    END delete_genero_libro;
+    
+-- LIBRO_RESERVA
+    PROCEDURE delete_libro_reserva(
+        p_id_reserva IN NUMBER,
+        p_id_libro IN NUMBER
+    ) IS
+        v_reserva_existe NUMBER;
+        v_reserva_inactiva NUMBER;
+        v_fecha_reserva DATE;
+
+    BEGIN
+        -- Verificar si la reserva existe
+        SELECT COUNT(*) INTO v_reserva_existe
+        FROM Reservas
+        WHERE ID_Reserva = p_id_reserva;
+        
+        IF v_reserva_existe = 0 THEN
+            RAISE_APPLICATION_ERROR(-20066, 'No existe la reserva con ID ' || p_id_reserva);
+        END IF;
+
+        --Borrar relación libro reserva
+        DELETE FROM Libro_Reserva
+        WHERE ID_Reserva = p_id_reserva
+        AND ID_Libro = p_id_libro; 
+
+        IF SQL%ROWCOUNT = 0 THEN
+            RAISE_APPLICATION_ERROR(-20063, 'No existe la relación libro-reserva indicada');
+        END IF;
+
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Libro eliminado de la reserva correctamente');
+        
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            ROLLBACK;
+            RAISE_APPLICATION_ERROR(-20069, 'Error al obtener datos de la reserva');
+        WHEN OTHERS THEN
+            ROLLBACK;
+            RAISE;
+    END delete_libro_reserva;
+    
+END pkg_deletes;
+/
+
+
 --Trigger para manejar inventario al añadir o eliminar libros de a reserva
 CREATE OR REPLACE TRIGGER t_actualizar_inventario
     BEFORE INSERT OR DELETE
