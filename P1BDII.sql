@@ -1149,5 +1149,26 @@ CREATE OR REPLACE TRIGGER t_actualizar_inventario_y_cantidad_reserva
 END;
 /
 
+CREATE OR REPLACE TRIGGER tr_auditoria_reservas
+    AFTER UPDATE ON Reservas
+    FOR EACH ROW
+    BEGIN
+        -- Añadir reserva a bitácora cuando se desactiva
+        IF :OLD.Activo = 1 AND :NEW.Activo = 0 THEN
+            BEGIN
+                -- Calcular multa si corresponde
+                pkg_operations.determinar_multa(:NEW.ID_Reserva);
+                
+                -- Registrar en bitácora
+                INSERT INTO Bitacora_Reservas (ID_Reserva, Fecha_Limite, Multa)
+                VALUES (:NEW.ID_Reserva, :NEW.Fecha_Limite, :NEW.Multa);
+                
+                EXCEPTION
+                    WHEN OTHERS THEN
+                        DBMS_OUTPUT.PUT_LINE('Error en trigger tr_auditoria_reservas: ' || SQLERRM);
+            END;
+        END IF;
+    END;
+/
 
 
