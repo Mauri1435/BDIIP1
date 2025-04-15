@@ -1352,3 +1352,72 @@ CREATE OR REPLACE PACKAGE BODY pkg_datos_default AS
 END pkg_datos_default;
 /
 
+
+CREATE OR REPLACE TYPE rpt_editorial_tab IS TABLE OF rpt_editorial_row;
+/
+
+CREATE OR REPLACE TYPE rpt_genero_row AS OBJECT (
+    genero                   VARCHAR2(200),
+    total_reservas          NUMBER,
+    total_libros_alquilados NUMBER
+);
+/
+
+CREATE OR REPLACE TYPE rpt_genero_tab IS TABLE OF rpt_genero_row;
+/
+
+CREATE OR REPLACE PACKAGE pkg_reportes AS
+    FUNCTION fn_reporte_editorial(p_anio NUMBER DEFAULT NULL) RETURN rpt_editorial_tab PIPELINED;
+    FUNCTION fn_reporte_genero(p_fecha_inicio DATE DEFAULT NULL, p_fecha_fin DATE DEFAULT NULL) RETURN rpt_genero_tab PIPELINED;
+END pkg_reportes;
+/
+
+CREATE OR REPLACE PACKAGE BODY pkg_reportes AS
+
+    FUNCTION fn_reporte_editorial(p_anio NUMBER DEFAULT NULL)
+    RETURN rpt_editorial_tab PIPELINED
+    IS
+    BEGIN
+        FOR r IN (
+            SELECT 
+                e.Nombre AS Editorial,
+                COUNT(DISTINCT l.ID_Libro) AS Libros_Disponibles,
+                COUNT(lr.ID_Libro) AS Veces_Reservados
+            FROM Libros l
+            INNER JOIN Editorial e ON l.ID_Editorial = e.ID_Editorial
+            RIGHT JOIN Libro_Reserva lr ON l.ID_Libro = lr.ID_Libro
+            RIGHT JOIN Reservas r ON lr.ID_Reserva = r.ID_Reserva
+            WHERE (p_anio IS NULL OR EXTRACT(YEAR FROM r.Fecha_Reserva) = p_anio)
+            GROUP BY e.Nombre
+            ORDER BY Veces_Reservados DESC NULLS LAST
+        ) LOOP
+            PIPE ROW(rpt_editorial_row(r.Editorial, r.Libros_Disponibles, r.Veces_Reservados));
+        END LOOP;
+        RETURN;
+    END;
+
+    FUNCTION fn_reporte_genero(p_fecha_inicio DATE DEFAULT NULL, p_fecha_fin DATE DEFAULT NULL)
+    RETURN rpt_genero_tab PIPELINED
+    IS
+    BEGIN
+        FOR r IN (
+            SELECT 
+                g.Nombre AS Genero,
+                COUNT(DISTINCT r.ID_Reserva) AS Total_Reservas,
+                SUM(r.Cantidad_Libros) AS Total_Libros_Alquilados
+            FROM Genero g
+            LEFT JOIN Genero_Libro gl ON g.ID_Genero = gl.ID_Genero
+            LEFT JOIN Libro_Reserva lr ON gl.ID_Libro = lr.ID_Libro
+            LEFT JOIN Reservas r ON lr.ID_Reserva = r.ID_Reserva
+            WHERE (p_fecha_inicio IS NULL OR r.Fecha_Reserva >= p_fecha_inicio)
+              AND (p_fecha_fin IS NULL OR r.Fecha_Reserva <= p_fecha_fin)
+            GROUP BY g.Nombre
+            ORDER BY Total_Reservas DESC
+        ) LOOP
+            PIPE ROW(rpt_genero_row(r.Genero, r.Total_Reservas, r.Total_Libros_Alquilados));
+        END LOOP;
+        RETURN;
+    END;
+
+END pkg_reportes;
+/
