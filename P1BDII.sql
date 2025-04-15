@@ -604,6 +604,125 @@ CREATE OR REPLACE PACKAGE BODY pkg_inserts AS
 END pkg_inserts;
 /
 
+
+--Package de operaciones
+CREATE OR REPLACE PACKAGE pkg_operations AS
+    PROCEDURE determinar_multa(
+        p_id_reserva IN NUMBER
+    );
+    PROCEDURE finalizar_reserva(
+        p_id_reserva IN NUMBER
+    );
+END pkg_operations;
+/
+
+CREATE OR REPLACE PACKAGE BODY pkg_operations AS
+-- Determinar Multa    
+    PROCEDURE determinar_multa(
+        p_id_reserva IN NUMBER
+    ) IS
+        v_id_reserva NUMBER;
+        v_fecha_limite DATE;
+        v_cantidad_libros NUMBER;
+        v_dias_retraso NUMBER;
+        v_multa_calculada NUMBER;
+    BEGIN
+        
+        -- Obtener datos de reserva 
+        SELECT ID_Reserva, Fecha_Limite, Cantidad_Libros
+        INTO v_id_reserva, v_fecha_limite, v_cantidad_libros
+        FROM Reservas
+        WHERE ID_Reserva = p_id_reserva
+        AND Activo = 1;
+        
+        -- Verificar fecha limite
+        IF v_fecha_limite >= SYSDATE THEN
+            DBMS_OUTPUT.PUT_LINE('La reserva se encuentra dentro de la fecha límite para entrega.');
+            RETURN; 
+        END IF;
+        
+        -- Calcular días de retraso y multa
+        v_dias_retraso := TRUNC(SYSDATE) - TRUNC(v_fecha_limite);
+        v_multa_calculada := 500 * v_cantidad_libros * v_dias_retraso;
+        
+        -- Actualizar de la reserva
+        UPDATE Reservas
+        SET Multa = v_multa_calculada
+        WHERE ID_Reserva = p_id_reserva;
+        
+        COMMIT;
+        
+        DBMS_OUTPUT.PUT_LINE('Reserva ID ' || v_id_reserva || ': ' || 
+                            v_dias_retraso || ' días de retraso.');
+        DBMS_OUTPUT.PUT_LINE('Multa calculada: ' || v_multa_calculada || 
+                            '.');
+        
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            DBMS_OUTPUT.PUT_LINE('Error: no se encontraron datos de la reserva activa');
+            ROLLBACK;
+        WHEN OTHERS THEN
+            DBMS_OUTPUT.PUT_LINE('Error inesperado: ' || SQLERRM);
+            ROLLBACK;
+            RAISE;
+    END determinar_multa;
+-- Finalizar Reserva
+    PROCEDURE finalizar_reserva(
+            p_id_reserva IN NUMBER
+        ) IS
+            v_reserva_existe NUMBER;
+            v_reserva_activa NUMBER;
+
+        BEGIN
+            -- Verificar reserva existe
+            SELECT COUNT(*) INTO v_reserva_existe
+            FROM Reservas
+            WHERE ID_Reserva = p_id_reserva;
+            
+            IF v_reserva_existe = 0 THEN
+                RAISE_APPLICATION_ERROR(-20080, 'No existe la reserva con ID ' || p_id_reserva);
+            END IF;
+            
+            -- Verificar reserva está activa
+            SELECT COUNT(*) INTO v_reserva_activa
+            FROM Reservas
+            WHERE ID_Reserva = p_id_reserva
+            AND Activo = 1;
+            
+            IF v_reserva_activa = 0 THEN
+                RAISE_APPLICATION_ERROR(-20081, 'La reserva con ID ' || p_id_reserva || ' ya está inactiva');
+            END IF;
+            
+            -- Devolver libros al inventario 
+            FOR libro_rec IN (
+                SELECT lr.ID_Libro 
+                FROM Libro_Reserva lr
+                WHERE lr.ID_Reserva = p_id_reserva
+            ) LOOP
+                UPDATE Libros
+                SET Inventario = Inventario + 1
+                WHERE ID_Libro = libro_rec.ID_Libro;
+            END LOOP;
+
+            -- Marcar reserva como inactiva
+            UPDATE Reservas
+            SET Activo = 0
+            WHERE ID_Reserva = p_id_reserva;
+            
+            COMMIT;
+            
+            DBMS_OUTPUT.PUT_LINE('Reserva ID ' || p_id_reserva || ' finalizada, libros devueltos al inventario.');
+            
+        EXCEPTION
+            WHEN OTHERS THEN
+                ROLLBACK;
+                DBMS_OUTPUT.PUT_LINE('Error al finalizar reserva: ' || SQLERRM);
+                RAISE;
+        END finalizar_reserva;
+END pkg_operations;
+/
+
+
 --Trigger para manejar inventario al añadir o eliminar libros de a reserva
 CREATE OR REPLACE TRIGGER t_actualizar_inventario
     BEFORE INSERT OR DELETE
