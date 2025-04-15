@@ -1462,12 +1462,106 @@ END pkg_reportes;
 
 
 /*
+
+-- Para añadir los datos default a las tablas
 BEGIN
     pkg_datos_default.insert_datos_default;
     COMMIT;
 END;
 /
+-- Para probar el reporte de reservas por editorial en el año 2025
 SELECT * FROM TABLE(PKG_REPORTES.fn_reporte_editorial(2025));
+-- Para probar el reporte de reservas por género del 2025-01-01 al 2025-12-31
 SELECT * FROM TABLE(PKG_REPORTES.fn_reporte_genero(DATE '2025-01-01', DATE '2025-12-31'));
 
+-- Usuarios extra para hacer pruebas 
+BEGIN
+    pkg_inserts.insert_usuario('210000022', 'Laura', 'Méndez', '8888-1212');
+    pkg_inserts.insert_usuario('210000023', 'Roberto', 'Vargas', '8888-1313');
+    pkg_inserts.insert_usuario('210000024', 'Ana', 'Castro ', '8888-1414');
+    pkg_inserts.insert_usuario('210000025', 'Andrés', 'Mora', '8888-1515');
+END;
+/
+
+-- Reservas con restraso, creadas con los usuarios extra
+BEGIN
+  pkg_inserts.insert_reserva(
+    p_fecha_reserva => SYSDATE-10,
+    p_fecha_limite => SYSDATE-5,
+    p_id_usuario => 24,
+    p_libros => '1,3',
+    p_activo => 1
+  );
+  
+  pkg_inserts.insert_reserva(
+    p_fecha_reserva => SYSDATE-8,
+    p_fecha_limite => SYSDATE-1,
+    p_id_usuario => 23,
+    p_libros => '1',
+    p_activo => 1
+  );
+END;
+/
+
+-- Reserva inactiva
+BEGIN
+  pkg_inserts.insert_reserva(
+    p_fecha_reserva => TO_DATE('20/01/2024', 'DD/MM/YYYY'),
+    p_fecha_limite => TO_DATE('10/02/2024', 'DD/MM/YYYY'),
+    p_id_usuario => 4,
+    p_libros => '7',
+    p_activo => 0
+  );
+END;
+/
+
+--Para probar eliminar una reserva con multa
+BEGIN
+  pkg_operations.finalizar_reserva(
+    p_id_reserva => 21
+  );
+  COMMIT;
+END;
+/
+
+--Para probar eliminar una reserva sin multa
+BEGIN
+  pkg_operations.finalizar_reserva(
+    p_id_reserva => 1
+  );
+  COMMIT;
+END;
+/
+
+*/
+
+--Si se quieren borrar todas las tablas, procedimientos, tipos, etc.
+/*
+
+DROP PACKAGE pkg_reportes;
+DROP PACKAGE pkg_datos_default;
+DROP PACKAGE pkg_deletes;
+DROP PACKAGE pkg_operations;
+DROP PACKAGE pkg_inserts;
+
+DROP TRIGGER tr_bitacora_reservas;
+DROP TRIGGER tr_actualizar_inventario_y_cantidad_reserva;
+
+DROP TYPE rpt_genero_tab;
+DROP TYPE rpt_genero_row;
+DROP TYPE rpt_editorial_tab;
+DROP TYPE rpt_editorial_row;
+
+DROP TABLE Libro_Reserva;
+DROP TABLE Genero_Libro;
+DROP TABLE Autor_Libro;
+DROP TABLE Bitacora_Reserva;
+
+DROP TABLE Reserva;
+DROP TABLE Libro;
+
+DROP TABLE Genero;
+DROP TABLE Autor;
+DROP TABLE Editorial;
+DROP TABLE Usuario;
 */
