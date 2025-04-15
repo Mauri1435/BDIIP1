@@ -1173,8 +1173,8 @@ CREATE OR REPLACE TRIGGER tr_auditoria_reservas
 
 
 CREATE OR REPLACE PACKAGE pkg_datos_default AS
-  PROCEDURE insert_datos_default;
-  PROCEDURE limpiar_datos_default;
+    PROCEDURE insert_datos_default;
+    PROCEDURE limpiar_datos_default;
 END pkg_datos_default;
 /
 
