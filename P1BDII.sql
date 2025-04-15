@@ -210,8 +210,7 @@ CREATE OR REPLACE PACKAGE BODY pkg_inserts AS
             ROLLBACK;
             RAISE;
     END insert_autor;
-
-    
+ 
 -- GENERO
     PROCEDURE insert_genero(
         p_nombre IN VARCHAR2,
@@ -357,31 +356,47 @@ CREATE OR REPLACE PACKAGE BODY pkg_inserts AS
 --RESERVA
     PROCEDURE insert_reserva(
         p_fecha_reserva IN DATE,
-        p_fecha_devolucion IN DATE,
+        p_fecha_limite IN DATE,
         p_id_usuario IN NUMBER,
         p_libros IN VARCHAR2 DEFAULT NULL
     ) IS
         v_id_reserva NUMBER;
         v_usuario_existe NUMBER;
         v_libro_existe NUMBER;
-        v_id_libro_invalido VARCHAR2 (100);
+        v_id_libro_invalido VARCHAR2(100);
+        v_libro_activo NUMBER;
         
         e_usuario_no_existe EXCEPTION;
         PRAGMA EXCEPTION_INIT(e_usuario_no_existe, -20020);
         
         e_libro_no_existe EXCEPTION;
         PRAGMA EXCEPTION_INIT(e_libro_no_existe, -20021);
+        
+        e_libro_inactivo EXCEPTION;
+        PRAGMA EXCEPTION_INIT(e_libro_inactivo, -20022);
+        
+        e_reserva_activa EXCEPTION;
+        PRAGMA EXCEPTION_INIT(e_reserva_activa, -20024);
     BEGIN
-        -- Validar USUARIO
-        SELECT COUNT(*) INTO v_usuario_existe
-        FROM Usuario
-        WHERE ID_Usuario = p_id_usuario;
+        -- Validar usuario
+        BEGIN
+            -- Verificar si ya tiene reserva activa
+            SELECT COUNT(*)
+            INTO v_usuario_existe 
+            FROM Reservas
+            WHERE ID_Usuario = p_id_usuario
+            AND Activo = 1;
+            
+            IF v_usuario_existe > 0 THEN
+                RAISE e_reserva_activa;
+            END IF;
+
+        EXCEPTION
+            WHEN OTHERS THEN
+                RAISE;
+        END;
         
-        IF v_usuario_existe = 0 THEN
-            RAISE e_usuario_no_existe;
-        END IF;
-        
-        -- Validar LIBROS
+        -- Validar libros 
         IF p_libros IS NOT NULL THEN
             FOR r IN (
                 SELECT regexp_substr(p_libros, '[^,]+', 1, LEVEL) AS id_libro
@@ -390,30 +405,43 @@ CREATE OR REPLACE PACKAGE BODY pkg_inserts AS
             ) LOOP
                 v_id_libro_invalido := r.id_libro; 
                 
-                SELECT COUNT(*) INTO v_libro_existe
-                FROM Libros
-                WHERE ID_Libro = TO_NUMBER(r.id_libro);
-                
-                IF v_libro_existe = 0 THEN
-                    RAISE e_libro_no_existe;
-                END IF;
+                BEGIN
+                    SELECT Activo INTO v_libro_activo
+                    FROM Libros
+                    WHERE ID_Libro = TO_NUMBER(r.id_libro);
+                    
+                    IF v_libro_activo = 0 THEN
+                        RAISE e_libro_inactivo;
+                    END IF;
+                    
+                EXCEPTION
+                    WHEN NO_DATA_FOUND THEN
+                        RAISE e_libro_no_existe;
+                END;
             END LOOP;
         END IF;
         
-        -- Insertar la reserva
-        INSERT INTO Reservas (Fecha_Reserva, Fecha_Devolucion, ID_Usuario)
-        VALUES (p_fecha_reserva, p_fecha_devolucion, p_id_usuario)
+        -- Insertar reserva 
+        INSERT INTO Reservas (Fecha_Reserva, Fecha_Limite, ID_Usuario)
+        VALUES (p_fecha_reserva, p_fecha_limite, p_id_usuario)
         RETURNING ID_Reserva INTO v_id_reserva;
         
-        -- Insertar relaciones con libros (el trigger ajustará el inventario)
-        FOR r IN (
-            SELECT regexp_substr(p_libros, '[^,]+', 1, LEVEL) AS id_libro
-            FROM dual
-            CONNECT BY regexp_substr(p_libros, '[^,]+', 1, LEVEL) IS NOT NULL
-        ) LOOP
-            INSERT INTO Libro_Reserva (ID_Reserva, ID_Libro)
-            VALUES (v_id_reserva, TO_NUMBER(r.id_libro));
-        END LOOP;
+        -- Insertar relaciones con libros 
+        IF p_libros IS NOT NULL THEN
+            FOR r IN (
+                SELECT regexp_substr(p_libros, '[^,]+', 1, LEVEL) AS id_libro
+                FROM dual
+                CONNECT BY regexp_substr(p_libros, '[^,]+', 1, LEVEL) IS NOT NULL
+            ) LOOP
+                BEGIN
+                    INSERT INTO Libro_Reserva (ID_Reserva, ID_Libro)
+                    VALUES (v_id_reserva, TO_NUMBER(r.id_libro));
+                EXCEPTION
+                    WHEN OTHERS THEN
+                        DBMS_OUTPUT.PUT_LINE('Error al agregar libro con id: ' || r.id_libro || SQLERRM);
+                END;
+            END LOOP;
+        END IF;
         
         COMMIT;
         DBMS_OUTPUT.PUT_LINE('Reserva creada correctamente con ID: ' || v_id_reserva);
@@ -425,17 +453,26 @@ CREATE OR REPLACE PACKAGE BODY pkg_inserts AS
             
         WHEN e_libro_no_existe THEN
             ROLLBACK;
-            RAISE_APPLICATION_ERROR(-20021, 'Error: No existe el libro con ID ' || v_id_libro_invalido); -- Usamos la variable guardada
+            RAISE_APPLICATION_ERROR(-20021, 'Error: No existe el libro con ID ' || v_id_libro_invalido);
+            
+        WHEN e_libro_inactivo THEN
+            ROLLBACK;
+            RAISE_APPLICATION_ERROR(-20022, 'Error: El libro con ID ' || v_id_libro_invalido || ' no está activo');
+            
+        WHEN e_reserva_activa THEN
+            ROLLBACK;
+            RAISE_APPLICATION_ERROR(-20024, 'Error: El usuario ya tiene una reserva activa');
             
         WHEN OTHERS THEN
             ROLLBACK;
-            IF SQLCODE = -20101 THEN
+            IF SQLCODE = -20101 THEN 
                 RAISE;  
+            ELSIF SQLCODE = -20102 THEN 
+                RAISE;
             ELSE
-                RAISE_APPLICATION_ERROR(-20000, 'Error inesperado: ' || SQLERRM);
+                RAISE_APPLICATION_ERROR(-20000, 'Error inesperado al crear reserva: ' || SQLERRM);
             END IF;
     END insert_reserva;
-
 
 -- AUTOR_LIBRO
     PROCEDURE insert_autor_libro(
