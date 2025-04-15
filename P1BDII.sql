@@ -117,7 +117,7 @@ CREATE OR REPLACE PACKAGE pkg_inserts AS
     --Reserva
     PROCEDURE insert_reserva(
         p_fecha_reserva IN DATE,
-        p_fecha_devolucion IN DATE,
+        p_fecha_limite IN DATE,
         p_id_usuario IN NUMBER,
         p_libros IN VARCHAR2 DEFAULT NULL -- IDs de libros relacionados (ej: '1,2,3')
     );
