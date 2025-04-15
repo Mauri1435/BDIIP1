@@ -1172,3 +1172,183 @@ CREATE OR REPLACE TRIGGER tr_auditoria_reservas
 /
 
 
+CREATE OR REPLACE PACKAGE pkg_datos_default AS
+  PROCEDURE insert_datos_default;
+  PROCEDURE limpiar_datos_default;
+END pkg_datos_default;
+/
+
+CREATE OR REPLACE PACKAGE BODY pkg_datos_default AS
+--Inserts de datos
+    PROCEDURE insert_datos_default IS
+    BEGIN
+
+    -- Insertar usuarios
+    pkg_inserts.insert_usuario('100000001', 'Juan', 'Álvarez', '8888-9999');
+    pkg_inserts.insert_usuario('200000002', 'María', 'Gómez', '8888-8888');
+    pkg_inserts.insert_usuario('300000003', 'Carlos', 'López', '8888-7777');
+    pkg_inserts.insert_usuario('400000004', 'Valentina', 'Domínguez', '8888-6666');
+    pkg_inserts.insert_usuario('500000005', 'Julián', 'Fernández', '8888-5555');
+    pkg_inserts.insert_usuario('600000006', 'Isabella', 'Rodríguez', '8888-4444');
+    pkg_inserts.insert_usuario('700000007', 'Sebastián', 'González', '8888-3333');
+    pkg_inserts.insert_usuario('800000008', 'Emma', 'Vázquez', '8888-2222');
+    pkg_inserts.insert_usuario('900000009', 'Santiago', 'Sánchez', '8888-1111');
+    pkg_inserts.insert_usuario('100000011', 'Abigail', 'Hernández', '8888-0000');
+    pkg_inserts.insert_usuario('110000012', 'Daniel', 'Martínez', '7777-9999');
+    pkg_inserts.insert_usuario('120000013', 'Camila', 'Gutiérrez', '7777-8888');
+    pkg_inserts.insert_usuario('130000014', 'Alejandro', 'Díaz', '7777-7777');
+    pkg_inserts.insert_usuario('140000015', 'Valeria', 'Herrera', '7777-6666');
+    pkg_inserts.insert_usuario('150000016', 'Diego', 'Jiménez', '7777-5555');
+    pkg_inserts.insert_usuario('160000017', 'Renata', 'Moreno', '7777-4444');
+    pkg_inserts.insert_usuario('170000018', 'Andrés', 'Pérez', '7777-3333');
+    pkg_inserts.insert_usuario('180000019', 'Mariana', 'Castro', '7777-2222');
+    pkg_inserts.insert_usuario('190000020', 'Javier', 'Romero', '7777-1111');
+    pkg_inserts.insert_usuario('200000021', 'Fernanda', 'Suárez', '7777-0000');
+
+    -- Insertar editoriales
+    pkg_inserts.insert_editorial('Editorial Impedimenta');
+    pkg_inserts.insert_editorial('Editorial Norma');
+    pkg_inserts.insert_editorial('Editorial Alma');
+    pkg_inserts.insert_editorial('Editorial Debolsillo');
+    pkg_inserts.insert_editorial('Editorial Penguin');
+    pkg_inserts.insert_editorial('Editorial Tor');
+    pkg_inserts.insert_editorial('Editorial Alianza');
+    pkg_inserts.insert_editorial('Editorial Satori');
+    pkg_inserts.insert_editorial('Editorial Acantilado');
+    pkg_inserts.insert_editorial('Editorial Everymans Library');
+    pkg_inserts.insert_editorial('Editorial Debate');
+    
+    
+    -- Insertar autores
+    pkg_inserts.insert_autor('Brandon', 'Sanderson');
+    pkg_inserts.insert_autor('Alejandro', 'Dumas');
+    pkg_inserts.insert_autor('Frank', 'Herbert');
+    pkg_inserts.insert_autor('Agatha', 'Christie');
+    pkg_inserts.insert_autor('J.R.R.', 'Tolkien');
+    pkg_inserts.insert_autor('Jane', 'Austen');
+    pkg_inserts.insert_autor('James', 'Clear');
+    pkg_inserts.insert_autor('Mary', 'Shelley');
+    pkg_inserts.insert_autor('Eiichiro', 'Oda');
+    pkg_inserts.insert_autor('Friederich', 'Nietzche');
+    pkg_inserts.insert_autor('Michio', 'Kaku');
+    pkg_inserts.insert_autor('Neil deGrasse', 'Tyson');
+    pkg_inserts.insert_autor('J.D.', 'Salinger');
+    pkg_inserts.insert_autor('Haruki', 'Murakami');
+
+    -- Insertar géneros
+    pkg_inserts.insert_genero('Novela', 'Obras de ficción narrativa');
+    pkg_inserts.insert_genero('Ciencia Ficción', 'Obras con elementos científicos futuristas');
+    pkg_inserts.insert_genero('Fantasía', 'Obras con elementos mágicos o sobrenaturales');
+    pkg_inserts.insert_genero('Romance', 'Obras con elementos mágicos o sobrenaturales');
+    pkg_inserts.insert_genero('Autoayuda', 'Obras con elementos mágicos o sobrenaturales');
+    pkg_inserts.insert_genero('Crimen', 'Obras con elementos mágicos o sobrenaturales');
+    pkg_inserts.insert_genero('Misterio', 'Obras con elementos mágicos o sobrenaturales');
+    pkg_inserts.insert_genero('Literatura Clásica ', 'Obras con elementos mágicos o sobrenaturales');
+    pkg_inserts.insert_genero('Coming-of-age', 'Obras con elementos mágicos o sobrenaturales');
+    pkg_inserts.insert_genero('Filosofía', 'Obras con elementos mágicos o sobrenaturales');
+    pkg_inserts.insert_genero('Manga', 'Obras con elementos mágicos o sobrenaturales');
+    pkg_inserts.insert_genero('Ciencia', 'Obras con elementos mágicos o sobrenaturales');
+    
+    
+    -- Insertar libros con autores y géneros 
+    pkg_inserts.insert_libro('El camino de los reyes', '9111466657662', '+15', 8, 1, '1', '3'); -- Brandon Sanderson, Fantasía
+    pkg_inserts.insert_libro('El Hobbit', '9112445000666', '+12', 10, 5, '5', '3'); -- J.R.R. Tolkien, Fantasía
+
+    pkg_inserts.insert_libro('Duna', '9113497593794', '+16', 6, 4, '3', '2'); -- Frank Herbert, Ciencia Ficción
+
+    pkg_inserts.insert_libro('Asesinato en el Orient Express', '9114490323042', '+16', 7, 7, '4', '6,7'); -- Agatha Christie, Crimen/Misterio
+    pkg_inserts.insert_libro('El sabueso de los Baskerville', '9115467033275', '+14', 5, 8, '4', '7'); -- Agatha Christie, Misterio
+
+    pkg_inserts.insert_libro('Orgullo y prejuicio', '9116491051258', '+14', 6, 10, '6', '8,4'); -- Jane Austen, Literatura Clásica/Romance
+
+    pkg_inserts.insert_libro('1Q84', '9117483833919', '+18', 5, 3, '14', '4'); -- Haruki Murakami, Romance
+
+    pkg_inserts.insert_libro('Los miserables', '9711866332941', '+16', 7, 2, '2', '8,4'); -- Victor Hugo, Literatura Clásica/Romance
+
+    pkg_inserts.insert_libro('Beyond Good and Evil', '9119878448152', '+16', 4, 4, '10', '10'); -- Friederich Nietzche, Filosofía
+
+    pkg_inserts.insert_libro('Atomic Habits', '9223384454287', '+16', 5, 5, '7', '5'); -- James Clear, Autoayuda
+
+    pkg_inserts.insert_libro('El guardián entre el centeno', '9221433927176', '+16', 6, 6, '13', '9'); -- J.D. Salinger, Coming-of-age
+
+    pkg_inserts.insert_libro('One Piece Vol. 1', '9222415618836', '+10', 8, 2, '9', '11'); -- Eiichiro Oda, Manga
+
+    pkg_inserts.insert_libro('El futuro de la Humanidad', '9223415618836', '+10', 8, 11, '11,12', '12'); --Michio Kaku, Neil deGrease Tyson, Ciencia
+    
+    
+    --Insertar reservas
+    pkg_inserts.insert_reserva(SYSDATE, SYSDATE+7, 2, '3');
+    
+    pkg_inserts.insert_reserva(SYSDATE-10, SYSDATE-3, 3, '4,5,6');
+    
+    pkg_inserts.insert_reserva(SYSDATE-5, SYSDATE+2, 4, '7');
+    
+    pkg_inserts.insert_reserva(SYSDATE-3, SYSDATE+4, 5, '8,9');
+    
+    pkg_inserts.insert_reserva(SYSDATE-7, SYSDATE, 6, '10');
+    
+    pkg_inserts.insert_reserva(SYSDATE-2, SYSDATE+5, 7, '11');
+    
+    pkg_inserts.insert_reserva(SYSDATE-1, SYSDATE+6, 8, '12');
+    
+    pkg_inserts.insert_reserva(SYSDATE, SYSDATE+7, 9, '13');
+    
+    pkg_inserts.insert_reserva(SYSDATE, SYSDATE+7, 10, '1,3');
+    
+    pkg_inserts.insert_reserva(SYSDATE-4, SYSDATE+3, 1, '2,4');
+
+    pkg_inserts.insert_reserva(SYSDATE-15, SYSDATE-8, 11, '1');         
+
+    pkg_inserts.insert_reserva(SYSDATE-12, SYSDATE-5, 12, '2,3');       
+
+    pkg_inserts.insert_reserva(SYSDATE-9, SYSDATE-2, 13, '4,5,6');      
+
+    pkg_inserts.insert_reserva(SYSDATE-6, SYSDATE+1, 14, '7');          
+
+    pkg_inserts.insert_reserva(SYSDATE-3, SYSDATE+4, 15, '8,9');        
+
+    pkg_inserts.insert_reserva(SYSDATE, SYSDATE+7, 16, '10');           
+
+    pkg_inserts.insert_reserva(SYSDATE-4, SYSDATE+3, 17, '11,12');      
+
+    pkg_inserts.insert_reserva(SYSDATE-7, SYSDATE, 18, '13');           
+
+    pkg_inserts.insert_reserva(SYSDATE-1, SYSDATE+6, 19, '1,2,3');      
+
+    pkg_inserts.insert_reserva(SYSDATE-5, SYSDATE+2, 20, '4,5');   
+    
+    
+    COMMIT;
+    DBMS_OUTPUT.PUT_LINE('Datos de prueba insertados correctamente');
+  EXCEPTION
+    WHEN OTHERS THEN
+      ROLLBACK;
+      DBMS_OUTPUT.PUT_LINE('Error al insertar datos de prueba: ' || SQLERRM);
+      RAISE;
+    END insert_datos_default;
+--Clear de datos
+    PROCEDURE limpiar_datos_default IS
+    BEGIN
+    -- Eliminar en orden inverso para respetar las FKs
+    DELETE FROM Libro_Reserva;
+    DELETE FROM Genero_Libro;
+    DELETE FROM Autor_Libro;
+    DELETE FROM Bitacora_Reservas;
+    DELETE FROM Reservas;
+    DELETE FROM Libros;
+    DELETE FROM Genero;
+    DELETE FROM Autor;
+    DELETE FROM Editorial;
+    DELETE FROM Usuario;
+    
+    COMMIT;
+    DBMS_OUTPUT.PUT_LINE('Todos los datos de prueba eliminados');
+    EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK;
+        DBMS_OUTPUT.PUT_LINE('Error al limpiar datos de prueba: ' || SQLERRM);
+        RAISE;
+    END limpiar_datos_default;
+END pkg_datos_default;
+/
+
