@@ -1072,43 +1072,81 @@ CREATE OR REPLACE PACKAGE BODY pkg_deletes AS
 END pkg_deletes;
 /
 
-
 --Trigger para manejar inventario al añadir o eliminar libros de a reserva
-CREATE OR REPLACE TRIGGER t_actualizar_inventario
+
+CREATE OR REPLACE TRIGGER t_actualizar_inventario_y_cantidad_reserva
     BEFORE INSERT OR DELETE
     ON Libro_Reserva
     FOR EACH ROW
-DECLARE
-    v_inventario_actual INTEGER;
-    v_titulo VARCHAR(100);
 
+    DECLARE
+        v_inventario_actual INTEGER;
+        v_titulo VARCHAR(100);
+        v_activo NUMBER;
+        v_reserva_activa NUMBER;
     BEGIN
         IF inserting THEN
+
+            --Verificar libro activo
+            SELECT Activo INTO v_activo
+            FROM Libros
+            WHERE ID_Libro = :NEW.ID_Libro;
+            
+            IF v_activo = 0 THEN
+                RAISE_APPLICATION_ERROR(-20102, 'Error: El libro no está disponible para reserva');
+            END IF;
+            
+            --Verificar reserva activa
+            SELECT Activo INTO v_reserva_activa
+            FROM Reservas
+            WHERE ID_Reserva = :NEW.ID_Reserva;
+
+            IF v_reserva_activa = 0 THEN
+                RAISE_APPLICATION_ERROR(-20103, 'Error: No se puede agregar libros a una reserva inactiva');
+            END IF;
+            
+            -- Verificar inventario
             SELECT Inventario, Titulo INTO v_inventario_actual, v_titulo
             FROM Libros
             WHERE ID_Libro = :NEW.ID_Libro;
 
             IF v_inventario_actual <= 0 THEN
-                RAISE_APPLICATION_ERROR(-20101, 'Error 20101: No se cuenta con inventario del título' || v_titulo);
-
+                RAISE_APPLICATION_ERROR(-20101, 'Error: No se cuenta con inventario del título ' || v_titulo);
             ELSE
-            UPDATE Libros
+                -- Actualizar inventario
+                UPDATE Libros
                 SET Inventario = Inventario - 1
-            WHERE ID_Libro  = :NEW.ID_Libro;
+                WHERE ID_Libro = :NEW.ID_Libro;
+                
+                -- Actualizar cantidad de libros en la reserva
+                UPDATE Reservas
+                SET Cantidad_Libros = Cantidad_Libros + 1
+                WHERE ID_Reserva = :NEW.ID_Reserva;
             END IF;
 
-        ELSIF deleting THEN
-            UPDATE Libros
+        ELSE
+            SELECT Activo INTO v_reserva_activa
+            FROM Reservas
+            WHERE ID_Reserva = :OLD.ID_Reserva;
+            
+            IF v_reserva_activa = 1 THEN
+                -- Actualizar inventario 
+                UPDATE Libros
                 SET Inventario = Inventario + 1
-            WHERE ID_Libro = :OLD.ID_Libro;
+                WHERE ID_Libro = :OLD.ID_Libro;
+                
+                -- Actualizar cantidad de libros en la reserva
+                UPDATE Reservas
+                SET Cantidad_Libros = Cantidad_Libros - 1 
+                WHERE ID_Reserva = :OLD.ID_Reserva;
+            END IF;
         END IF;
     EXCEPTION 
         WHEN NO_DATA_FOUND THEN
             RAISE_APPLICATION_ERROR(-20002, 'Error 20002: Error al buscar el libro con el ID ' || :NEW.ID_Libro);
         WHEN OTHERS THEN
-            RAISE_APPLICATION_ERROR(-20000, 'Error 20000: Error inesperado');    
-
-    END;
+            RAISE_APPLICATION_ERROR(-20000, 'Error 20000: Error inesperado - ' || SQLERRM);    
+END;
 /
 
 
