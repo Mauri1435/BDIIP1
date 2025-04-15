@@ -119,7 +119,8 @@ CREATE OR REPLACE PACKAGE pkg_inserts AS
         p_fecha_reserva IN DATE,
         p_fecha_limite IN DATE,
         p_id_usuario IN NUMBER,
-        p_libros IN VARCHAR2 DEFAULT NULL -- IDs de libros relacionados (ej: '1,2,3')
+        p_libros IN VARCHAR2 DEFAULT NULL, -- IDs de libros relacionados (ej: '1,2,3')
+        p_activo IN NUMBER DEFAULT 1
     );
     -- Autor_Libro
     PROCEDURE insert_autor_libro(
@@ -356,8 +357,9 @@ CREATE OR REPLACE PACKAGE BODY pkg_inserts AS
     PROCEDURE insert_reserva(
         p_fecha_reserva IN DATE,
         p_fecha_limite IN DATE,
-        p_id_usuario IN NUMBER,
-        p_libros IN VARCHAR2 DEFAULT NULL
+        p_id_usuario IN NUMBER,        
+        p_libros IN VARCHAR2 DEFAULT NULL, -- IDs de libros relacionados (ej: '1,2,3')
+        p_activo IN NUMBER DEFAULT 1
     ) IS
         v_id_reserva NUMBER;
         v_usuario_existe NUMBER;
@@ -377,6 +379,10 @@ CREATE OR REPLACE PACKAGE BODY pkg_inserts AS
         e_reserva_activa EXCEPTION;
         PRAGMA EXCEPTION_INIT(e_reserva_activa, -20024);
     BEGIN
+        --Validar estado de reserva 
+        IF p_activo NOT IN (0, 1) THEN
+            RAISE_APPLICATION_ERROR(-20025, 'Error: El estado de la reserva debe ser 0 o 1.');
+        END IF;
         -- Validar usuario
         BEGIN
             -- Verificar si usuario ya tiene reserva activa
@@ -386,7 +392,7 @@ CREATE OR REPLACE PACKAGE BODY pkg_inserts AS
             WHERE ID_Usuario = p_id_usuario
             AND Activo = 1;
             
-            IF v_usuario_existe > 0 THEN
+            IF v_usuario_existe > 0 AND p_activo = 1 THEN
                 RAISE e_reserva_activa;
             END IF;
 
@@ -421,8 +427,8 @@ CREATE OR REPLACE PACKAGE BODY pkg_inserts AS
         END IF;
         
         -- Insertar reserva 
-        INSERT INTO Reserva (Fecha_Reserva, Fecha_Limite, ID_Usuario)
-        VALUES (p_fecha_reserva, p_fecha_limite, p_id_usuario)
+        INSERT INTO Reserva (Fecha_Reserva, Fecha_Limite, ID_Usuario, Activo)
+        VALUES (p_fecha_reserva, p_fecha_limite, p_id_usuario, p_activo)
         RETURNING ID_Reserva INTO v_id_reserva;
         
         -- Insertar relaciones con libros 
@@ -670,6 +676,7 @@ CREATE OR REPLACE PACKAGE BODY pkg_operations AS
         ) IS
             v_reserva_existe NUMBER;
             v_reserva_activa NUMBER;
+            v_multa_calculada NUMBER :=0;
 
         BEGIN
             -- Verificar reserva existe
@@ -690,7 +697,32 @@ CREATE OR REPLACE PACKAGE BODY pkg_operations AS
             IF v_reserva_activa = 0 THEN
                 RAISE_APPLICATION_ERROR(-20081, 'La reserva con ID ' || p_id_reserva || ' ya está inactiva');
             END IF;
+
+            -- Determinar multa
+            DECLARE
+                v_fecha_limite DATE;
+                v_cantidad_libros NUMBER;
+                v_dias_retraso NUMBER;
+            BEGIN
+                -- Obtener datos para calcular multa
+                SELECT Fecha_Limite, Cantidad_Libros
+                INTO v_fecha_limite, v_cantidad_libros
+                FROM Reserva
+                WHERE ID_Reserva = p_id_reserva;
+                
+                -- Calcular días de retraso y multa si hay retraso
+                IF v_fecha_limite < SYSDATE THEN
+                    v_dias_retraso := TRUNC(SYSDATE) - TRUNC(v_fecha_limite);
+                    v_multa_calculada := 500 * v_cantidad_libros * v_dias_retraso;
+                END IF;
+            END;
             
+            -- Actualizar reserva con multa y marcarla como inactiva EN UNA SOLA OPERACIÓN
+            UPDATE Reserva
+            SET Activo = 0,
+                Multa = v_multa_calculada
+            WHERE ID_Reserva = p_id_reserva;
+
             -- Devolver libros al inventario 
             FOR libro_rec IN (
                 SELECT lr.ID_Libro 
@@ -701,11 +733,6 @@ CREATE OR REPLACE PACKAGE BODY pkg_operations AS
                 SET Inventario = Inventario + 1
                 WHERE ID_Libro = libro_rec.ID_Libro;
             END LOOP;
-
-            -- Marcar reserva como inactiva
-            UPDATE Reserva
-            SET Activo = 0
-            WHERE ID_Reserva = p_id_reserva;
             
             COMMIT;
             
@@ -1163,9 +1190,6 @@ CREATE OR REPLACE TRIGGER tr_bitacora_reservas
         -- Añadir reserva a bitácora cuando se desactiva
         ELSIF UPDATING AND :OLD.Activo = 1 AND :NEW.Activo = 0 THEN 
             BEGIN
-                -- Calcular multa si corresponde
-                pkg_operations.determinar_multa(:NEW.ID_Reserva);
-                
                 -- Registrar en bitácora
                 INSERT INTO Bitacora_Reserva (ID_Reserva, Fecha_Limite, Multa)
                 VALUES (:NEW.ID_Reserva, :NEW.Fecha_Limite, :NEW.Multa);
@@ -1435,3 +1459,15 @@ CREATE OR REPLACE PACKAGE BODY pkg_reportes AS
 
 END pkg_reportes;
 /
+
+
+/*
+BEGIN
+    pkg_datos_default.insert_datos_default;
+    COMMIT;
+END;
+/
+SELECT * FROM TABLE(PKG_REPORTES.fn_reporte_editorial(2025));
+SELECT * FROM TABLE(PKG_REPORTES.fn_reporte_genero(DATE '2025-01-01', DATE '2025-12-31'));
+
+*/
