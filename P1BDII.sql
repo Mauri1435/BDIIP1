@@ -1320,11 +1320,11 @@ CREATE OR REPLACE PACKAGE BODY pkg_datos_default AS
     
     COMMIT;
     DBMS_OUTPUT.PUT_LINE('Datos de prueba insertados correctamente');
-  EXCEPTION
+    EXCEPTION
     WHEN OTHERS THEN
-      ROLLBACK;
-      DBMS_OUTPUT.PUT_LINE('Error al insertar datos de prueba: ' || SQLERRM);
-      RAISE;
+        ROLLBACK;
+        DBMS_OUTPUT.PUT_LINE('Error al insertar datos de prueba: ' || SQLERRM);
+        RAISE;
     END insert_datos_default;
 --Clear de datos
     PROCEDURE limpiar_datos_default IS
