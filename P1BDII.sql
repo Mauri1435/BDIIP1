@@ -1147,11 +1147,21 @@ END;
 
 --Trigger para añadir a la tabla de bitácora
 CREATE OR REPLACE TRIGGER tr_bitacora_reservas
-    AFTER UPDATE ON Reserva
+    AFTER INSERT OR UPDATE ON Reserva
     FOR EACH ROW
     BEGIN
+        --Añadir reserva a bitácora cuando se crea inactiva
+        IF INSERTING AND :NEW.Activo = 0 THEN
+            BEGIN
+                INSERT INTO Bitacora_Reserva (ID_Reserva, Fecha_Limite, Multa)
+                VALUES (:NEW.ID_Reserva, :NEW.Fecha_Limite, :NEW.Multa);
+            EXCEPTION
+                WHEN OTHERS THEN
+                    DBMS_OUTPUT.PUT_LINE('Error en trigger tr_bitacora_reservas: ' || SQLERRM);
+            END;
+
         -- Añadir reserva a bitácora cuando se desactiva
-        IF :OLD.Activo = 1 AND :NEW.Activo = 0 THEN
+        ELSIF UPDATING AND :OLD.Activo = 1 AND :NEW.Activo = 0 THEN 
             BEGIN
                 -- Calcular multa si corresponde
                 pkg_operations.determinar_multa(:NEW.ID_Reserva);
