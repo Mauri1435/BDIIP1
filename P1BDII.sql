@@ -1352,6 +1352,12 @@ CREATE OR REPLACE PACKAGE BODY pkg_datos_default AS
 END pkg_datos_default;
 /
 
+CREATE OR REPLACE TYPE rpt_editorial_row AS OBJECT (
+    editorial            VARCHAR2(200),
+    libros_disponibles   NUMBER,
+    veces_reservados     NUMBER
+);
+/
 
 CREATE OR REPLACE TYPE rpt_editorial_tab IS TABLE OF rpt_editorial_row;
 /
