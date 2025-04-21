@@ -1,25 +1,18 @@
-//package main.java.com.library.library.model;
+package com.library.library.model;
 
-import java.util.Scanner;
-import java.util.List;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import org.hibernate.annotations.processing.SQL;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-import javax.sql.DataSource;
 
 
 public class users {
 
     @Value("${db.url}")
     private String url;
-    private final DataSource Datasource;
     private Connection connection;
     private String id;
     public String cedula;
@@ -67,14 +60,18 @@ public class users {
     }
 
     private void setUserData() {
-        java.sql.Statement statement = connection.createStatement();
-        ResultSet resultSet = statement.executeQuery("SELECT * FROM usuario WHERE id_usuario = USER");
-        while (resultSet.next()) {
-            this.cedula = resultSet.getString("cedula");
-            this.nombre = resultSet.getString("nombre");
-            this.apellido = resultSet.getString("apellido");
-            this.telefono = resultSet.getString("telefono");
-            this.login = resultSet.getString("login");
+        try {
+            java.sql.Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery("SELECT * FROM usuario WHERE id_usuario = USER");
+            while (resultSet.next()) {
+                this.cedula = resultSet.getString("cedula");
+                this.nombre = resultSet.getString("nombre");
+                this.apellido = resultSet.getString("apellido");
+                this.telefono = resultSet.getString("telefono");
+                this.login = resultSet.getString("login");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("No se pudo obtener los datos del usuario", e);
         }
     }
 

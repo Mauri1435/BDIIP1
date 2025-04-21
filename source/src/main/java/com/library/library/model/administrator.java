@@ -19,11 +19,11 @@ public class administrator {
     public String nombre;
     public String apellido;
     public String telefono;
-    public String login;
+    public String Login;
 
-    public administrator(String login, String password) {
+    public administrator(String Login, String password) {
         try {
-            this.connection =  checkCredentials(login, password);
+            this.connection =  checkCredentials(Login, password);
             setUserData();
         } catch (SQLException e) {
             throw new RuntimeException("No se pudo iniciar sesión", e);
@@ -42,13 +42,13 @@ public class administrator {
         }
     }
 
-    public Boolean registerUser(String cedula, String nombre, String apellido, String telefono, String login, String password) {
+    public Boolean registerUser(String cedula, String nombre, String apellido, String telefono, String Login, String password) {
         try {
             CallableStatement statement = connection.prepareCall("CALL registerAdmin(?, ?, ?, ?, ?, ?)");
             statement.setString(1, cedula);
             statement.setString(2, nombre);
             statement.setString(3, apellido);
-            statement.setString(1, login);
+            statement.setString(1, Login);
             statement.setString(2, password);
             statement.executeUpdate();
             return true;
@@ -58,12 +58,16 @@ public class administrator {
     }
 
     private void setUserData() {
-        Statement statement = connection.createStatement();
-        ResultSet resultSet = statement.executeQuery("SELECT * FROM administrador WHERE id_usuario = USER");
-        while (resultSet.next()) {
-            this.cedula = resultSet.getString("cedula");
-            this.nombre = resultSet.getString("nombre");
-            this.apellido = resultSet.getString("apellido");
+        try {
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery("SELECT * FROM administrador WHERE id_usuario = USER");
+            while (resultSet.next()) {
+                this.cedula = resultSet.getString("cedula");
+                this.nombre = resultSet.getString("nombre");
+                this.apellido = resultSet.getString("apellido");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("No se pudo obtener los datos del usuario", e);
         }
     }
 

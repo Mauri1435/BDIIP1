@@ -25,12 +25,12 @@ import com.library.library.model.book;
 @RequestMapping("/api/auth")
 public class config {
 
-    private login loginInstance = login.getInstance();
+    private Login loginInstance = Login.getInstance();
 
     @PostMapping("/addBook")
-    public ResponseEntity<?> addBook(@RequestBody List<book> books) {
+    public ResponseEntity<?> addBook(@RequestBody List<book> books,HttpServletRequest request) {
         try {
-            Connection conn = loginInstance.getConnection(loginInstance.getToken());
+            Connection conn = loginInstance.getConnection(loginInstance.getToken(request));
             CallableStatement statement = conn.prepareCall("CALL addBook(?, ?, ?, ?, ?, ?, ?)");
             for (book book:books){
                 statement.setString(1, book.getTitle());

@@ -11,6 +11,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.ArrayList;
+import jakarta.servlet.http.HttpServletRequest;
 
 import com.library.library.model.book;
 
@@ -18,12 +19,12 @@ import com.library.library.model.book;
 @RequestMapping("/libros")
 public class reserve {
 
-    private login loginInstance = login.getInstance();
+    private Login loginInstance = Login.getInstance();
 
     @GetMapping
-    public ResponseEntity<?> getBooks(String name, String author, String editorial, String type) {
+    public ResponseEntity<?> getBooks(String name, String author, String editorial, String type, HttpServletRequest request) {
         try{
-            Connection connection = loginInstance.getConnection(loginInstance.getToken());
+            Connection connection = loginInstance.getConnection(loginInstance.getToken(request));
             Statement statement = connection.createStatement();
             String query = "SELECT * FROM libros JOIN WHERE";
             if (name != null) {
@@ -52,9 +53,9 @@ public class reserve {
     }
 
     @PostMapping("/reserve/{BookId}")
-    public ResponseEntity<?> reserveBook(@PathVariable("BookId") Long bookId) {
+    public ResponseEntity<?> reserveBook(@PathVariable("BookId") Long bookId,HttpServletRequest request) {
         try{
-            Connection connection = loginInstance.getConnection(loginInstance.getToken());
+            Connection connection = loginInstance.getConnection(loginInstance.getToken(request));
             CallableStatement statement = connection.prepareCall("CALL reserveBook(?)");
             statement.setLong(1, bookId);
             return ResponseEntity.ok("Libro reservado con éxito");
