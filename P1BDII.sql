@@ -609,7 +609,7 @@ CREATE OR REPLACE PACKAGE BODY pkg_inserts AS
 END pkg_inserts;
 /
 
---Package de operaciones
+--Package de las operaciones
 CREATE OR REPLACE PACKAGE pkg_operations AS
     PROCEDURE determinar_multa(
         p_id_reserva IN NUMBER
@@ -670,7 +670,7 @@ CREATE OR REPLACE PACKAGE BODY pkg_operations AS
             ROLLBACK;
             RAISE;
     END determinar_multa;
--- Finalizar Reserva
+-- Finalizar la Reserva
     PROCEDURE finalizar_reserva(
             p_id_reserva IN NUMBER
         ) IS
